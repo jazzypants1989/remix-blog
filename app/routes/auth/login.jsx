@@ -1,5 +1,6 @@
 import { useActionData, json, redirect } from "remix";
 import { db } from "~/utils/db.server";
+import { login, createSession } from "~/utils/session.server";
 
 function validateUsername(username) {
   if (typeof username !== "string" || username.length < 5) {
@@ -8,8 +9,6 @@ function validateUsername(username) {
     return "Username must be less than 20 characters";
   } else if (username.includes(" ")) {
     return "Username cannot contain spaces";
-  } else if (username.includes(password)) {
-    return "Username cannot contain password";
   }
 }
 
@@ -20,8 +19,6 @@ function validatePassword(password) {
     return "Password must be less than 20 characters";
   } else if (password.includes(" ")) {
     return "Password cannot contain spaces";
-  } else if (password.includes(username)) {
-    return "Password cannot contain username";
   }
 }
 
@@ -45,8 +42,30 @@ export const action = async ({ request }) => {
   if (Object.values(fieldErrors).some(Boolean)) {
     return badRequest({ fieldErrors, fields });
   }
-};
 
+  switch (loginType) {
+    case "login": {
+      const user = await login({ username, password });
+      if (!user) {
+        return badRequest({
+          fields,
+          fieldErrors: "Invalid username or password",
+        });
+      }
+      return createSession(user.id, "/posts");
+    }
+
+    case "register": {
+    }
+
+    default: {
+      return badRequest({
+        fields,
+        formError: "Login Type Invalid... What are you doing, bro?",
+      });
+    }
+  }
+};
 const Login = () => {
   const actionData = useActionData();
 

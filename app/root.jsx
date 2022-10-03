@@ -1,5 +1,6 @@
-import { Outlet, Link, Links, LiveReload, Meta } from "remix";
+import { Outlet, Link, Links, LiveReload, Meta, useLoaderData } from "remix";
 import globalStylesUrl from "./styles/global.css";
+import { getUser } from "./utils/session.server";
 
 export const meta = () => {
   return {
@@ -20,6 +21,12 @@ export default function App() {
   );
 }
 
+export const loader = async ({ request }) => {
+  const user = await getUser(request);
+  const data = { user };
+  return data;
+};
+
 function Document({ children, title }) {
   return (
     <html lang="en">
@@ -37,6 +44,8 @@ function Document({ children, title }) {
 }
 
 function Layout({ children }) {
+  const { user } = useLoaderData();
+
   return (
     <>
       <nav className="navbar">
@@ -48,12 +57,21 @@ function Layout({ children }) {
           <li>
             <Link to="/posts">Posts</Link>
           </li>
-          <li>
-            <Link to="/auth/login">Login</Link>
-          </li>
+          {user ? (
+            <li>
+              <form action="/auth/logout" method="POST">
+                <button type="submit" className="btn">
+                  Logout {user.username}
+                </button>
+              </form>
+            </li>
+          ) : (
+            <li>
+              <Link to="/auth/login">Login</Link>
+            </li>
+          )}
         </ul>
       </nav>
-
       <main className="container">{children}</main>
     </>
   );
@@ -67,6 +85,7 @@ export function ErrorBoundary({ error }) {
         <div>
           <h1>It's not our fault. It's yours.</h1>
           <p>Try again later.</p>
+          <p>{error.message}</p>
         </div>
       </Layout>
     </Document>
